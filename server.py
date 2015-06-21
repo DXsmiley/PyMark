@@ -87,19 +87,15 @@ def index():
 	s = """
 		<h1>PyMark Code Judge</h1>
 		<p><a href="/problems">Here is a list of problems.</a></p>
-		<p>Welcome to the normanhurst code judge. It's still in development,
+		<p>Welcome to the PyMark code judge. It's still in development,
 			so don't be surprised if things go wrong.</p>
 		<p>Before you start solving problems, you'll have to
 			<a href="/newaccount">create an account</a> and
 			<a href="/login">login</a>.</p>
 		<div class="bs-callout bs-callout-danger">
 			<h4>Warning!</h4>
-			<p>Please only submit to problems that have a problem statement <i>on this site</i>.
+			<p>Please <i>only submit to problems that have a problem statement</i>.
 			Other problems will not work, or are unstable.</p>
-		</div>
-		<div class="bs-callout bs-callout-info">
-			<h4>Help</h4>
-			<p>If anyone needs any help, just ask. I'm also able to fix any problems that are broken.</p>
 		</div>
 		"""
 	return html_framework.format(s)
