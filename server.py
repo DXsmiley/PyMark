@@ -9,6 +9,7 @@ import datetime
 import accounts
 import datetime
 import cgi
+import os
 
 html_framework = """
 	<html>
@@ -42,6 +43,31 @@ html_framework = """
 		</body>
 	</html>
 	"""
+
+### SETUP ##################################################################################
+
+def ensure_directory_exists(directory):
+	if not os.path.exists(directory):
+		os.makedirs(directory)
+		print('Creating directory', directory)
+
+def ensure_file_exists(filename, contents = ''):
+	try:
+		with open(filename, 'x') as f:
+			f.write(contents)
+		print('Creating file', filename)
+	except FileExistsError:
+		pass
+
+ensure_directory_exists('./problems')
+ensure_directory_exists('./progress')
+ensure_directory_exists('./rundir')
+ensure_directory_exists('./scores')
+ensure_directory_exists('./submissions')
+ensure_directory_exists('./static')
+ensure_directory_exists('./static/pages')
+
+ensure_file_exists('./problems/problems.json', '{}')
 
 accounts.load()
 
@@ -410,59 +436,66 @@ def problem_listing(username = None):
 		submissions = user_get_best_submissions(username)
 		num_solves = user_get_num_solves(username)
 
-	html = """
-		<table class="table">
-			<thead>
-				<th>Set</th>
-				<th>Problem</th>
-				<th>Score</th>
-			</thead>
-		"""
+
+	html = ''
 
 	with open('./problems/problems.json') as f:
 		jdata = json.loads(f.read())
-		for group_o in jdata:
-			first = True
-			html += ''.format()
-			group_n = group_o['section']
-			group_s = len(group_o['problems'])
+		if len(jdata) == 0:
+			html = """
+				<p>There are no problems!</p>
+				<p>The server admin can add some to the problem listing at <code>./problems/problems.json</code>.</p>
+				"""
+		else:
+			html = """
+				<table class="table">
+					<thead>
+						<th>Set</th>
+						<th>Problem</th>
+						<th>Score</th>
+					</thead>
+				"""
+			for group_o in jdata:
+				first = True
+				html += ''.format()
+				group_n = group_o['section']
+				group_s = len(group_o['problems'])
 
-			for problem in group_o['problems']:
-				data = problem_get_data(problem)
-				long_name = data.get('name', problem + ' (?)')
-				required = data.get('required solves', 0)
-				score = scores.get(problem, 'Not attempted')
-				colour = ''
-				if problem in scores:
-					if scores[problem] == 100:
-						colour = 'success'
-					elif scores[problem] == 0:
-						colour = 'danger'
+				for problem in group_o['problems']:
+					data = problem_get_data(problem)
+					long_name = data.get('name', problem + ' (?)')
+					required = data.get('required solves', 0)
+					score = scores.get(problem, 'Not attempted')
+					colour = ''
+					if problem in scores:
+						if scores[problem] == 100:
+							colour = 'success'
+						elif scores[problem] == 0:
+							colour = 'danger'
+						else:
+							colour = 'warning'
+					if num_solves < required:
+						colour = 'active'
+						score = '{} solves until unlock'.format(required - num_solves)
+					if problem in submissions:
+						score = '<a href="/scores/{}">{}</a>'.format(submissions[problem], score)
+					if first:
+						first = False
+						html += """
+							<tr>
+								<td rowspan="{}">{}</td>
+								<td class="{colour}"><a href="/statement/{}">{}</a></td>
+								<td class="{colour}">{}</td>
+							</tr>
+							""".format(group_s, group_n, problem, long_name, score, colour = colour)
 					else:
-						colour = 'warning'
-				if num_solves < required:
-					colour = 'active'
-					score = '{} solves until unlock'.format(required - num_solves)
-				if problem in submissions:
-					score = '<a href="/scores/{}">{}</a>'.format(submissions[problem], score)
-				if first:
-					first = False
-					html += """
-						<tr>
-							<td rowspan="{}">{}</td>
-							<td class="{colour}"><a href="/statement/{}">{}</a></td>
-							<td class="{colour}">{}</td>
-						</tr>
-						""".format(group_s, group_n, problem, long_name, score, colour = colour)
-				else:
-					html += """
-						<tr>
-							<td class="{colour}"><a href="/statement/{}">{}</a></td>
-							<td class="{colour}">{}</td>
-						</tr>
-						""".format(problem, long_name, score, colour = colour)
-
-	html += '</table>'
+						html += """
+							<tr>
+								<td class="{colour}"><a href="/statement/{}">{}</a></td>
+								<td class="{colour}">{}</td>
+							</tr>
+							""".format(problem, long_name, score, colour = colour)
+			html += '</table>'
 
 	return html
 
