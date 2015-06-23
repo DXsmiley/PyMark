@@ -26,10 +26,16 @@ class ErrorInvalidUsername(ErrorBase): pass
 def load():
 	global database
 	global sessions
-	with open('accounts.json') as f:
-		database = json.loads(f.read())
-	with open('sessions.json') as f:
-		sessions = json.loads(f.read())
+	try:
+		with open('accounts.json') as f:
+			database = json.loads(f.read())
+	except FileNotFoundError:
+		print('No accounts.json file found. One will be created automatically.')
+	try:
+		with open('sessions.json') as f:
+			sessions = json.loads(f.read())
+	except FileNotFoundError:
+		print('No sessions.json file found. One will be created automatically.')
 
 def save():
 	with open('accounts.json', 'w') as f:
