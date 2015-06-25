@@ -31,6 +31,7 @@ class ErrorInvalidUsername(ErrorBase): pass
 def load():
 	global database
 	global sessions
+	global session_id_counter
 	try:
 		with open('accounts.json') as f:
 			database = json.loads(f.read())
@@ -39,12 +40,14 @@ def load():
 	try:
 		with open('sessions.json') as f:
 			sessions = json.loads(f.read())
+		session_id_counter = int(sessions.get('num sessions', 0))
 	except FileNotFoundError:
 		print('No sessions.json file found. One will be created automatically.')
 
 def save():
 	with open('accounts.json', 'w') as f:
 		f.write(json.dumps(database))
+	sessions['num sessions'] = session_id_counter
 	with open('sessions.json', 'w') as f:
 		f.write(json.dumps(sessions))
 
