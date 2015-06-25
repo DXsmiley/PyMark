@@ -1,6 +1,7 @@
 import json
 import random
 import hashlib
+import time
 
 # Accounts are currently salted and hashed. It might be a better idea to
 # store them as plaintext in case anyone forgets their password or something.
@@ -9,6 +10,10 @@ database = dict()
 sessions = dict()
 
 session_id_counter = 0
+
+# The time for a session to become invalid, in seconds.
+# This is by default 3 hours. (3 * 60 * 60)
+session_timeout = 3 * 60 * 60
 
 class ErrorBase(Exception):
 	def __init__(self, value):
@@ -49,7 +54,7 @@ def hash(x):
 
 # Not a very good salt
 def make_salt():
-	return str(random.randint(0, 2 ** 30))
+	return str(random.randint(0, 2 ** 32))
 
 def login(username, password):
 	global session_id_counter
@@ -62,10 +67,13 @@ def login(username, password):
 		raise ErrorInvalidLogin('Password is incorrect.')
 	session_id_counter += 1
 	session_id = str(session_id_counter)
+	session_key = str(random.randint(0, 2 ** 32))
 	sessions[session_id] = dict()
-	session_key = str(random.randint(0, 2 ** 30))
-	sessions[session_id]['key'] = session_key
-	sessions[session_id]['user'] = username
+	sessions[session_id] = {
+		'key': session_key,
+		'user': username,
+		'time': time.time()
+	}
 	save()
 	return (session_id, session_key)
 
@@ -95,11 +103,19 @@ def create(username, password):
 	save() # Save everything! Not sure if this is the best strategy though.
 	return login(username, password)
 
+def session_validate_time(session_id):
+	if session_id in sessions:
+		if time.time() - sessions[session_id].get('time', 0) > session_timeout:
+			del sessions[session_id]
+
 def session_check(session_id, session_key):
+	is_valid = False
+	session_validate_time(session_id)
 	if session_id in sessions:
 		if sessions[session_id].get('key', '') == session_key:
-			return True
-	return False
+			sessions[session_id]['time'] = time.time() # Refresh time
+			is_valid = True
+	return is_valid
 
 def session_get_username(session_id):
 	return sessions[session_id]['user']
