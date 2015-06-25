@@ -71,7 +71,6 @@ def login(username, password):
 	session_id_counter += 1
 	session_id = str(session_id_counter)
 	session_key = str(random.randint(0, 2 ** 128))
-	sessions[session_id] = dict()
 	sessions[session_id] = {
 		'key': session_key,
 		'user': username,
