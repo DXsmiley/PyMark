@@ -54,7 +54,7 @@ def hash(x):
 
 # Not a very good salt
 def make_salt():
-	return str(random.randint(0, 2 ** 32))
+	return str(random.randint(0, 2 ** 128))
 
 def login(username, password):
 	global session_id_counter
@@ -67,7 +67,7 @@ def login(username, password):
 		raise ErrorInvalidLogin('Password is incorrect.')
 	session_id_counter += 1
 	session_id = str(session_id_counter)
-	session_key = str(random.randint(0, 2 ** 32))
+	session_key = str(random.randint(0, 2 ** 128))
 	sessions[session_id] = dict()
 	sessions[session_id] = {
 		'key': session_key,
