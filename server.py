@@ -791,4 +791,5 @@ def error404(error):
 		"""
 	return html_framework.format(contents)
 
-bottle.run(host = '0.0.0.0', port = 8080)
+my_port = int(os.environ.get("PORT", 8080))
+bottle.run(host = '0.0.0.0', port = my_port)
