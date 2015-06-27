@@ -9,7 +9,9 @@ class Crashed(Exception):
 	def __str__(self):
 		return 'Crash Report:\n' + self.data
 
-def execute(command = 'python code.py', timeout = 1):
+def execute(command = None, timeout = 1):
+	if command == None:
+		command = os.environ.get("CMD_INVOKE_CODE", "python {}").format("code.py")
 	try:
 		the_output = subprocess.check_output(command, timeout = timeout, stderr = subprocess.STDOUT, cwd = './rundir')
 		the_output = the_output.decode('utf-8').strip()
