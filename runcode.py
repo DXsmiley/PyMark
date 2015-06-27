@@ -14,9 +14,12 @@ def execute(command = None, timeout = 1, shell = None):
 	if command == None:
 		command = os.environ.get("CMD_INVOKE_CODE", "python {}").format("code.py")
 	if shell == None:
-		shell = int(os.environ.get("CMD_INVOKE_SHELL", 0)) == 1
+		if int(os.environ.get("CMD_INVOKE_SHELL", 0)) == 1:
+			shell = True
+		else:
+			shell = False
 	try:
-		the_output = (command, timeout = timeout, stderr = subprocess.STDOUT, cwd = './rundir', shell = shell)
+		the_output = subprocess.check_output(command, timeout = timeout, stderr = subprocess.STDOUT, cwd = './rundir', shell = shell)
 		the_output = the_output.decode('utf-8').strip()
 		the_output = [i.strip() for i in the_output.split('\n')]
 		return the_output
