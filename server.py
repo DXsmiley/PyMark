@@ -79,25 +79,29 @@ def static(the_file):
 
 @bottle.route('/static/page/<the_file>')
 def static(the_file):
-	html = open('./static/page/' + the_file).read()
+	html = open('./static/pages/' + the_file).read()
 	return html_framework.format(html)
 
 @bottle.route('/')
 def index():
-	s = """
-		<h1>PyMark Code Judge</h1>
-		<p><a href="/problems">Here is a list of problems.</a></p>
-		<p>Welcome to the PyMark code judge. It's still in development,
-			so don't be surprised if things go wrong.</p>
-		<p>Before you start solving problems, you'll have to
-			<a href="/newaccount">create an account</a> and
-			<a href="/login">login</a>.</p>
-		<div class="bs-callout bs-callout-danger">
-			<h4>Warning!</h4>
-			<p>Please <i>only submit to problems that have a problem statement</i>.
-			Other problems will not work, or are unstable.</p>
-		</div>
-		"""
+	try:
+		with open('./static/pages/index.html') as f:
+			s = f.read()
+	except FileNotFoundError:
+		s = """
+			<h1>PyMark Code Judge</h1>
+			<p><a href="/problems">Here is a list of problems.</a></p>
+			<p>Welcome to the PyMark code judge. It's still in development,
+				so don't be surprised if things go wrong.</p>
+			<p>Before you start solving problems, you'll have to
+				<a href="/newaccount">create an account</a> and
+				<a href="/login">login</a>.</p>
+			<div class="bs-callout bs-callout-danger">
+				<h4>Warning!</h4>
+				<p>Please <i>only submit to problems that have a problem statement</i>.
+				Other problems will not work, or are unstable.</p>
+			</div>
+			"""
 	return html_framework.format(s)
 
 @bottle.route('/favicon.ico')
