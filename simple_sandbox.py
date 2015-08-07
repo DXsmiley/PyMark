@@ -6,7 +6,27 @@
 
 import sys as __sys__hidden__
 
-class ImportBlocker(object):
+class IlligalImport(Exception):
+	def __init__(self, module_name):
+		self.module_name = module_name
+
+	def __str__(self):
+		return "You may not import package '{}'.".format(self.module_name)
+
+class IlligalFunctionError(Exception):
+	pass
+
+class IlligalFileAccessError(Exception):
+	def __init__(self, filename):
+		self.filename = filename
+
+	def __str__(self):
+		return "You may not open file '{}'.".format(self.filename)
+
+def IlligalFunction(*a, **b):
+	raise IlligalFunctionError()
+
+class ImportBlocker():
 	def __init__(self, *args):
 		self.module_names = args
 
@@ -14,7 +34,19 @@ class ImportBlocker(object):
 		return self
 
 	def load_module(self, name):
-		raise IlligalImport("You may not import package '{}'.".format(name))
+		raise IlligalImport(name)
+
+class OpenBlocker():
+	def __init__(self, open_function, allowed_files):
+		self.open_function = open_function
+
+	def __call__(self, filename, mode = 'r'):
+		if filename in allowed_files:
+			return open_function(filename, mode)
+		else:
+			raise IlligalFileAccessError(filename)
+
+open_blocker = OpenBlocker({SANDBOX_OPEN_FUNCTION}, {SANDBOX_ALLOWED_FILES})
 
 __sys__hidden__.meta_path = [ImportBlocker()]
 
@@ -32,16 +64,7 @@ for i in __blocked_modules__:
 
 __sys__hidden__ = None
 
-class IlligalImport(Exception):
-	pass
-
-class IlligalFunctionError(Exception):
-	pass
-
-def IlligalFunction(*a, **b):
-	raise IlligalFunctionError()
-
-open = IlligalFunction
+open = open_blocker
 delattr = IlligalFunction
 setattr = IlligalFunction
 hasattr = IlligalFunction
