@@ -3,12 +3,7 @@ import random
 import hashlib
 import time
 import databases
-
-# Accounts are currently salted and hashed. It might be a better idea to
-# store them as plaintext in case anyone forgets their password or something.
-
-# database = dict()
-# sessions = dict()
+import cryptorand
 
 # The time for a session to become invalid, in seconds.
 # This is by default 3 hours. (3 * 60 * 60)
@@ -27,13 +22,11 @@ class ErrorAccountExists(ErrorBase): pass
 class ErrorInvalidPassword(ErrorBase): pass
 class ErrorInvalidUsername(ErrorBase): pass
 
-# Reasonable hash, I think.
 def hash(x):
 	return hashlib.sha224(str.encode(x)).hexdigest()
 
-# Not a very good salt
 def make_salt():
-	return str(random.randint(0, 2 ** 128))
+	return str(cryptorand.generate(8))
 
 def checkUsername(s):
 	if len(s) < 4:
@@ -56,8 +49,8 @@ def login(username, password):
 	pass_hashed = hash(pass_salted)
 	if u_doc['password'] != pass_hashed:
 		raise ErrorInvalidLogin('Password is incorrect.')
-	session_id = str(random.randint(0, 2 ** 128))
-	session_key = str(random.randint(0, 2 ** 128))
+	session_id = str(cryptorand.generate(8))
+	session_key = str(cryptorand.generate(8))
 	sessions_doc = {
 		'_id': session_id,
 		'key': session_key,
@@ -82,11 +75,6 @@ def create(username, password):
 	}
 	databases.c_accounts.insert(document)
 	return login(username, password)
-
-# def session_validate_time(session_id):
-# 	if session_id in sessions:
-# 		if time.time() - sessions[session_id].get('time', 0) > session_timeout:
-# 			del sessions[session_id]
 
 # Sessions currently don't care about time.
 # This needs to be fixed.
