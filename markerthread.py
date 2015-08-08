@@ -23,8 +23,6 @@ class MarkerThread:
 			marker_queue_lock.release()
 			
 			if work_to_do:
-				# save_path = './submissions/{}.py'.format(submisson_id)
-				# score_path = './scores/{}'.format(submisson_id)
 				print('Marking', problem, submisson_id, username)
 				score = -2
 				html = '...'
@@ -52,7 +50,6 @@ def queue_item(item):
 	marker_queue.append(item)
 	marker_queue_lock.release()
 
-# submission_log_lock = threading.Lock()
 marker_queue_lock = threading.Lock()
 marker_queue = []
 marker_thread = MarkerThread(interval = 4)

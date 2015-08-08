@@ -25,6 +25,7 @@ load_setting('invoke_code', 'python {}')
 load_setting('invoke_shell', 0)
 load_setting('db_login')
 load_setting('db_name')
+load_setting('port', 8080)
 
 def get(name):
 	return settings[name]

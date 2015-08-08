@@ -42,11 +42,6 @@ def mark(problem_to_mark, code):
 			<p>Your final score: {}<p>
 			{}""".format(problem_to_mark, grader_output[0], grader_output[1])
 
-		# with open(output_filename, 'w') as f:
-		# 	f.write('<h1>Submission for {}</h1>'.format(problem_to_mark))
-		# 	f.write('Your final score: {}<br>'.format(grader_output[0]))
-		# 	f.write(grader_output[1])
-
 	except Exception as e:
 
 		error_text = traceback.format_exc()
@@ -59,17 +54,7 @@ def mark(problem_to_mark, code):
 			If the problem persists, conact the system administrators.</p>
 			<pre>{}</pre>
 			""".format(cgi.escape(error_text.replace('\n', '<br>')))
-
-		# with open(output_filename, 'w') as f:
-		# 	f.write('<h1>Submission for {}</h1>'.format(problem_to_mark))
-		# 	f.write("""
-		# 		<p>A <i>serious internal error</i> occured.
-		# 		You should try resubmitting your code.
-		# 		If the problem persists, conact the system administrators.</p>
-		# 		<p>{}</p>""".format(cgi.escape(error_text.replace('\n', '<br>'))))
-
-	# Cleanup
-
+	
 	try:
 		grader.cleanup(THE_FOLDER)
 	except:
