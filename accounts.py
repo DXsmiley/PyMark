@@ -55,7 +55,7 @@ def login(username, password):
 		'_id': session_id,
 		'key': session_key,
 		'user': username,
-		'time': time.time()
+		'time': time.time(),
 	}
 	databases.c_sessions.insert(sessions_doc)
 	return (session_id, session_key)
@@ -80,11 +80,10 @@ def create(username, password):
 # This needs to be fixed.
 def session_check(session_id, session_key):
 	s_doc = databases.c_sessions.find_one({'_id': session_id})
-	if s_doc == None:
-		return False
-	if s_doc['key'] != session_key:
-		return False
-	return True
+	valid = s_doc != None and s_doc['key'] == session_key and time.time() - s_doc['time'] < session_timeout
+	if not valid:
+		databases.c_sessions.remove({'_id': session_id})
+	return valid
 
 def session_get_username(session_id):
 	return databases.c_sessions.find_one({'_id': session_id})['user']
