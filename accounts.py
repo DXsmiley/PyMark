@@ -28,7 +28,7 @@ def hash(x):
 def make_salt():
 	return str(cryptorand.generate(8))
 
-def checkUsername(s):
+def check_username(s):
 	if len(s) < 4:
 		raise ErrorInvalidUsername('Username must be at least 4 characters long.')
 	if len(s) > 20:
@@ -36,7 +36,7 @@ def checkUsername(s):
 	if not s.isalnum():
 		raise ErrorInvalidUsername('Username must only have numbers and letters.')
 
-def checkPassword(s):
+def check_password(s):
 	if len(s) < 4:
 		raise ErrorInvalidPassword('Password must be longer than 4 characters.')
 
@@ -62,8 +62,8 @@ def login(username, password):
 
 def create(username, password):
 	username = username.lower()
-	checkUsername(username)
-	checkPassword(password)
+	check_username(username)
+	check_password(password)
 	if databases.c_accounts.find_one({'_id': username}) != None:
 		raise ErrorAccountExists('An account with that username already exists.')
 	salt = make_salt()
