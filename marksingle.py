@@ -5,8 +5,9 @@ import json
 import importlib
 import traceback
 import cgi
+import submissions
 
-def mark(problem_to_mark, code_filename, output_filename):
+def mark(problem_to_mark, code):
 
 	# Mark things
 
@@ -34,26 +35,38 @@ def mark(problem_to_mark, code_filename, output_filename):
 			else:
 				grader.preload(THE_FOLDER)
 
-		grader_output = grader.evaluate(open(code_filename).read(), verbose = VERBOSE)
+		grader_output = grader.evaluate(code, verbose = VERBOSE)
 		final_result = int(grader_output[0])
 
-		with open(output_filename, 'w') as f:
-			f.write('<h1>Submission for {}</h1>'.format(problem_to_mark))
-			f.write('Your final score: {}<br>'.format(grader_output[0]))
-			f.write(grader_output[1])
+		html_results = """<h1>Submission for {}</h1>
+			<p>Your final score: {}<p>
+			{}""".format(problem_to_mark, grader_output[0], grader_output[1])
+
+		# with open(output_filename, 'w') as f:
+		# 	f.write('<h1>Submission for {}</h1>'.format(problem_to_mark))
+		# 	f.write('Your final score: {}<br>'.format(grader_output[0]))
+		# 	f.write(grader_output[1])
 
 	except Exception as e:
 
 		error_text = traceback.format_exc()
 		print(error_text)
 		final_result = -1
-		with open(output_filename, 'w') as f:
-			f.write('<h1>Submission for {}</h1>'.format(problem_to_mark))
-			f.write("""
-				<p>A <i>serious internal error</i> occured.
-				You should try resubmitting your code.
-				If the problem persists, conact the system administrators.</p>
-				<p>{}</p>""".format(cgi.escape(error_text.replace('\n', '<br>'))))
+
+		html_results = """<h1>Submission for {}</h1>
+			<p>A <i>serious interal error</i> occured.
+			You should try resubmitting your code.
+			If the problem persists, conact the system administrators.</p>
+			<pre>{}</pre>
+			""".format(cgi.escape(error_text.replace('\n', '<br>')))
+
+		# with open(output_filename, 'w') as f:
+		# 	f.write('<h1>Submission for {}</h1>'.format(problem_to_mark))
+		# 	f.write("""
+		# 		<p>A <i>serious internal error</i> occured.
+		# 		You should try resubmitting your code.
+		# 		If the problem persists, conact the system administrators.</p>
+		# 		<p>{}</p>""".format(cgi.escape(error_text.replace('\n', '<br>'))))
 
 	# Cleanup
 
@@ -62,4 +75,4 @@ def mark(problem_to_mark, code_filename, output_filename):
 	except:
 		pass
 
-	return final_result
+	return final_result, html_results
