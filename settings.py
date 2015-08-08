@@ -27,4 +27,4 @@ load_setting('db_login')
 load_setting('db_name')
 
 def get(name):
-	return settings['name']
+	return settings[name]
