@@ -10,6 +10,8 @@ import accounts
 import datetime
 import cgi
 import os
+import submissions
+import settings
 
 html_framework = """
 	<html>
@@ -60,16 +62,12 @@ def ensure_file_exists(filename, contents = ''):
 		pass
 
 ensure_directory_exists('./problems')
-ensure_directory_exists('./progress')
 ensure_directory_exists('./rundir')
-ensure_directory_exists('./scores')
-ensure_directory_exists('./submissions')
 ensure_directory_exists('./static')
 ensure_directory_exists('./static/pages')
 
 ensure_file_exists('./problems/problems.json', '{}')
-
-accounts.load()
+ensure_file_exists('./settings.json', '{}')
 
 ### GENERAL STUFF ##########################################################################
 
@@ -305,7 +303,6 @@ def user_change_visibility(username):
 def user(username):
 	data = accounts.get_account_data(username)
 	if data == None:
-		# html_framework.format('<p>User {} not found</p>'.format(username))
 		raise bottle.HTTPError(status = 404)
 	else:
 		auth_level = {None: 'Student', 'tutor': 'Tutor', 'admin': 'Administrator', 'pleb': 'Pleb'}[data.get('auth')]
@@ -393,19 +390,8 @@ def problem_get_data(i):
 	f = open('./problems/{}/settings.json'.format(i))
 	return json.loads(f.read())
 
-def user_get_scores(username):
-	scores = dict()
-	try:
-		with open('./progress/' + username) as f:
-			for line in f.readlines():
-				problem, submisson_id, score = line.split()
-				scores[problem] = max(scores.get(problem, 0), int(score))
-	except FileNotFoundError:
-		pass
-	return scores
-
 def user_get_best_submissions(username):
-	scores = user_get_scores(username)
+	scores = submissions.user_get_scores(username)
 	submission = dict()
 	try:
 		with open('./progress/' + username) as f:
@@ -417,24 +403,20 @@ def user_get_best_submissions(username):
 		pass
 	return submission
 
-def user_get_num_solves(username):
-	num_solves = 0
-	for i, j in user_get_scores(username).items():
-		if j == 100:
-			num_solves += 1
-	return num_solves
-
 # Gives a listing of problems that the user has solved.
 # This can be used for seeing other people's things and your own.
 def problem_listing(username = None):
 	scores = dict()
-	submissions = dict()
+	subms = dict()
 	num_solves = 0
 
 	if username != None:
-		scores = user_get_scores(username)
-		submissions = user_get_best_submissions(username)
-		num_solves = user_get_num_solves(username)
+		for i in submissions.user_get_scores(username):
+			p = i['problem']
+			s = i['score']
+			scores[p] = max(scores.get(p, 0), s)
+		subms = user_get_best_submissions(username)
+		num_solves = submissions.user_get_num_solves(username)
 
 
 	html = ''
@@ -477,8 +459,8 @@ def problem_listing(username = None):
 					if num_solves < required:
 						colour = 'active'
 						score = '{} solves until unlock'.format(required - num_solves)
-					if problem in submissions:
-						score = '<a href="/scores/{}">{}</a>'.format(submissions[problem], score)
+					if problem in subms:
+						score = '<a href="/scores/{}">{}</a>'.format(subms[problem], score)
 					if first:
 						first = False
 						html += """
@@ -509,20 +491,14 @@ def problems():
 
 def attempt_listing(username, problem = None):
 	html = ''
-	try:
-		with open('./progress/' + username) as f:
-			num_previous = 0
-			for line in f.readlines():
-				# print(line)
-				s_problem, submisson_id, score = line.split()
-				if problem == None:
-					num_previous += 1
-					html += '<p><a href="/scores/{}">{} {}: {}</a></p>'.format(submisson_id, submisson_id, s_problem, score)
-				if s_problem == problem:
-					num_previous += 1
-					html += '<p><a href="/scores/{}">Submission {}: {}</a></p>'.format(submisson_id, num_previous, score)
-	except FileNotFoundError:
-		html = '<p>No progress file.</p>'
+	for i, s in enumerate(submissions.user_get_scores(username, problem)):
+		submisson_id = s['_id']
+		s_problem = s['problem']
+		score = s['score']
+		if problem == None:
+			html += '<p><a href="/scores/{}">{} : {} : {}</a></p>'.format(submisson_id, i + 1, s_problem, score)
+		else:
+			html += '<p><a href="/scores/{}">Submission {}: {}</a></p>'.format(submisson_id, i + 1, score)
 	return html
 
 @bottle.route('/statement/<problem>')
@@ -538,7 +514,7 @@ def statement(problem):
 	required_solves = problem_data.get('required solves', 0)
 	has_access = True
 	if required_solves > 0:
-		if not session_check() or user_get_num_solves(session_get_username()) < required_solves:
+		if not session_check() or submissions.user_get_num_solves(session_get_username()) < required_solves:
 			has_access = False
 	# Warning about no problem statement
 	statement = """
@@ -593,6 +569,14 @@ def statement(problem):
 					<p>You do not have enough solves to view this problem under normal circumstances.</p>
 				</div>
 				"""
+		# Warning about a disabled problem
+		if problem_data.get('disabled', False):
+			head += """
+				<div class="bs-callout bs-callout-warning">
+					<h4>This problem is disabled</h4>
+					<p>You will not be able to submit to it.</p>
+				</div>
+			"""
 		return html_framework.format(head + statement + foot)
 	else:
 		contents = """
@@ -610,14 +594,7 @@ def statement(problem):
 # Maybe, some year far into the future, the random number generator will mess up.
 # Just makes sure that the file doesn't already exist.
 def generateSubmissionId():
-	valid = False
-	while not valid:
-		submisson_id = random.randint(0, 2 ** 30)
-		try:
-			open('./submissions/{}.py'.format(submisson_id))
-		except FileNotFoundError:
-			valid = True
-	return submisson_id
+	return str(random.randint(0, 2 ** 128))
 
 def loadFileSafely(file_object, limit = 1024):
 	BUFFER_SIZE = 1024 * 8
@@ -643,30 +620,15 @@ def dosubmit(problem):
 				</div>
 				"""
 		else:
-			# Save code file
-			o_upload = bottle.request.files.get('upload')
-			submisson_id = generateSubmissionId()
-			save_path = './submissions/{}.py'.format(submisson_id)
-			score_path = './scores/{}'.format(submisson_id)
-
-			# o_upload.save(save_path)
-
 			# Load file, limit to 32 KB
-			file_data = loadFileSafely(o_upload.file, 1024 * 32)
-
-			if file_data != None:
+			o_upload = bottle.request.files.get('upload')
+			code_data = loadFileSafely(o_upload.file, 1024 * 32)
+			if code_data != None:
 				# File is within acceptable size, we can save and mark it.
-				with open(save_path, 'wb') as f:
-					f.write(file_data)
-				markerthread.queue_item((problem, submisson_id, session_get_username()))
-				# Save metatdata file
-				with open('./submissions/{}.json'.format(submisson_id), 'w') as f:
-					data = {
-						'user': session_get_username(),
-						'problem': problem,
-						'date': str(datetime.datetime.now())
-					}
-					f.write(json.dumps(data))
+				code_data = code_data.decode('utf-8')
+				username = session_get_username()
+				submisson_id = submissions.store_code(username, code_data)
+				markerthread.queue_item((problem, submisson_id, username))
 				contents = """
 					<p>
 						File submitted for grading.<br>
@@ -686,69 +648,39 @@ def dosubmit(problem):
 	else:
 		bottle.redirect('/login')
 
-def submission_get_data(submission):
-	# Arbitrary dummy object that mimics a dictionary, and returns 'unknown' for everything.
-	class temp:
-		def get(self, *args):
-			return '(unknown)'
-	data = temp()
-	# Now actually do stuff
-	try:
-		with open('./submissions/{}.json'.format(submission)) as f:
-			data = json.loads(f.read())
-	except:
-		pass
-	return data
-
 def may_see_code(submission):
 	assert(session_check())
-	sub_data = submission_get_data(submission)
+	sub_data = submissions.get_result(submission)
 	ses_data = session_get_account_data()
-	return ses_data.get('auth') in ['admin', 'tutor'] or session_get_username() == sub_data['user']
+	return ses_data.get('auth') in ['admin', 'tutor'] or session_get_username() == sub_data['username']
 
 @bottle.route('/scores/<submission>')
 def scores(submission):
 	t = ''
-	if session_check() and may_see_code(submission):
-		t += '<p><a href="/code/{}">Code</a></p>'.format(submission)
 	try:
-		with open('./submissions/{}.json'.format(submission), 'r') as f:
-			data = json.loads(f.read())
-			t += '<a href="/statement/{}">Problem statement</a></p>'.format(data['problem'])
+		if session_check() and may_see_code(submission):
+			t += '<p><a href="/code/{}">Code</a></p>'.format(submission)
+		d = submissions.get_result(submission)
+		t += d['breakdown']
 	except:
-		pass
-	e = '<p>Your code has not yet been judged. Try refreshing the page in a minute or two.</p>'
-	s = html_framework.format(e)
-	try:
-		with open('./scores/' + submission) as f:
-			s = html_framework.format(t + '<p>' + f.read() + '</p>')
-	except:
-		pass
+		t = '<p>Your code has not yet been judged. Try refreshing the page in a minute or two.</p>'
+	s = html_framework.format(t)
 	return s
 
 @bottle.route('/code/<submission>')
 def code(submission):
 	if session_check() and may_see_code(submission):
-		data = submission_get_data(submission)
-		user = data.get('user')
+		data = submissions.get_result(submission)
+		user = data.get('username')
 		problem = data.get('problem')
 		contents = """
 			<p>{user}'s submission to <a href="/statement/{problem}">{problem}</a>.</p>
 			""".format(user = user, problem = problem)
-		the_code = open('./submissions/{}.py'.format(submission)).read()
+		the_code = submissions.get_code(submission)
 		html_code = '<pre>{}</pre>'.format(cgi.escape(the_code))
 		return html_framework.format(contents + html_code)
 	else:
 		return html_framework.format('<p>You do not have the right to access code.</p>')
-
-@bottle.route('/log')
-def log():
-	s = 'Error'
-	# submission_log_lock.acquire()
-	with open('submission_log') as f:
-		s = html_framework.format(f.read())
-	# submission_log_lock.release()
-	return s
 
 @bottle.route('/highscores')
 def highscores():
@@ -765,7 +697,7 @@ def highscores():
 		"""
 	scores = []
 	for i in accounts.list_accounts():
-		s = user_get_num_solves(i)
+		s = submissions.user_get_num_solves(i)
 		if s > 0:
 			scores.append((i, s))
 	scores.sort(key = lambda x: x[1], reverse = True)
@@ -795,5 +727,5 @@ def error404(error):
 		"""
 	return html_framework.format(contents)
 
-my_port = int(os.environ.get("PORT", 8080))
+my_port = int(settings.get('port'))
 bottle.run(host = '0.0.0.0', port = my_port)

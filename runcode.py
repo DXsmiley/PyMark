@@ -1,5 +1,5 @@
 import subprocess
-import os
+import settings
 
 class Timeout(Exception):
 	pass
@@ -12,9 +12,9 @@ class Crashed(Exception):
 
 def execute(command = None, timeout = 1, shell = None):
 	if command == None:
-		command = os.environ.get("CMD_INVOKE_CODE", "python {}").format("code.py")
+		command = settings.get('invoke_code').format("code.py")
 	if shell == None:
-		if int(os.environ.get("CMD_INVOKE_SHELL", 0)) == 1:
+		if int(settings.get('invoke_shell')) == 1:
 			shell = True
 		else:
 			shell = False
