@@ -31,12 +31,10 @@ def load_setting(name, default = None):
 		settings[name] = os.environ.get(v[4:], default)
 
 load_setting('invoke_code', 'python {}')
-load_setting('invoke_shell', 0)
+load_setting('invoke_shell', '0')
 load_setting('db_login')
 load_setting('db_name', 'database')
-load_setting('port', 8080)
-
-
+load_setting('port', '8080')
 
 def get(name):
 	return settings[name]
