@@ -418,7 +418,6 @@ def problem_listing(username = None):
 		subms = user_get_best_submissions(username)
 		num_solves = submissions.user_get_num_solves(username)
 
-
 	html = ''
 
 	with open('./problems/problems.json') as f:
@@ -684,24 +683,37 @@ def code(submission):
 
 @bottle.route('/highscores')
 def highscores():
+	board_kind = bottle.request.query.page or 'problems'
+	if board_kind == 'problems'
+		metric_name = 'Problems Solved'
+		link_name = 'total score'
+		link_value = 'total'
+	else:
+		metric_name = 'Total Score'
+		link_name = 'problems solved'
+		link_value = 'problems'
 	contents = """
 		<h1>Highscores</h1>
+		<p><a href="/highscores?page={}">Sort by {}</a></p>
 		<table class="table">
 			<thead>
 				<tr>
 					<th>User</th>
-					<th>Problems Solved</th>
+					<th>{}</th>
 				</tr>
 			</thead>
 			<tbody>
-		"""
+		""".format(link_value, link_name, metric_name)
 	scores = []
 	for i in accounts.list_accounts():
-		s = submissions.user_get_num_solves(i)
+		if board_kind == 'problems':
+			s = submissions.user_get_num_solves(i)
+		else:
+			s = submissions.user_get_total_score(i)
 		if s > 0:
 			scores.append((i, s))
 	scores.sort(key = lambda x: x[1], reverse = True)
-	for i, s, in scores:
+	for i, s in scores:
 		contents += """
 			<tr>
 				<td><a href="/user/{username}">{username}</td>
