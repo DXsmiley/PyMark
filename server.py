@@ -684,7 +684,7 @@ def code(submission):
 @bottle.route('/highscores')
 def highscores():
 	board_kind = bottle.request.query.page or 'problems'
-	if board_kind == 'problems'
+	if board_kind == 'problems':
 		metric_name = 'Problems Solved'
 		link_name = 'total score'
 		link_value = 'total'
