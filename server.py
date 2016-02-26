@@ -584,7 +584,7 @@ def statement(problem):
 
 ### PROBLEM EDITING ########################################################################
 
-@bottle.route('/new_problem')
+@bottle.route('/problem_new')
 def page_problem_new():
 	contents = "<p>Nope.</p>"
 	if session_check() and (session_get_auth_level() in ['admin', 'tutor']):
