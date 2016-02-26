@@ -54,30 +54,25 @@ If you open the newly created `settings.json` file, you will be able to specify 
 
 These parameters can also be set through environment variables, which have the same name, but shuld be prefixed by `pymark_`.
 
-### 3. Create a problem
+### 3. Setup an admin account
+
+Do this manually, though the database.
+
+### 4. Create a problem
+
+After logging in to the admin (or a tutor) account, go to the page `/problem_new`. It will have a number of fields you have to fill out.
+
+The first attribute is the 'idenifier', or short name. This is an identifier unique to the problem. The problem will be placed at `/statement/identifier`. This is usually the same as the problem name, but in all lowercase and without any whitespace or special symbols.
+
+The name if the problem is just that - its name. This will be shown on the problem listing page.
+
+The problem statement is a description of what the student should do. You can write HTML code, using the paragraph and headder tags for formatting.
 
 To begin, create a folder in the directory 'problems'. Are create a the following files `settings.json` and `statement.html` within it.
 
-Copy the following data into `settings.json`:
+Finally, you specify the test data
 
-	{
-		"grader": "graders.outputonly",
-		"name": "problem_name",
-		"disabled": false
-	}
-
-Currently, only one grader is supported, so don't fiddle with it. `problem_name` is the name of the problem and can be changed to whatever you want. If you want to diable a problem, you can set disabled to true. People will still be able to view the problem, but will be unable to submit. Also, a warning message will be disabled on the problem's page. Finally the property `"required solves"` can be added, specifying the number of problems the user must have completed before being allowed to view this problem.
-
-The file `statement.html` is the problem statement. It is a fully-functional html document, however the `html` and `body` tags will be supplied by the server, so you do not need to add them. Below is an example of a valid problem statement.
-
-	<h1>Example Problem</h1>
-	<p>This is a problem. Maybe you can solve it?</p>
-	<pre>Some preformatted text</pre>
-	<p>The <code>code tag</code> is also usefull.</p>
-
-Finally, you should create the file `cases.json`. This file contains all the test cases that the user's code will be run against. Cases are divided into subtasks. Each case has input and output. A single line of input corresponds with a single `input()` call in the user's python code. The user's code must produce the specified output exactly, otherwise it will fail the test case. 
-
-An example `cases.json` file follows:
+Example test data.
 
 	{
 		"Subtask 1":
