@@ -3,11 +3,11 @@ class BaseGrader:
 	def __init__(self):
 		pass
 
-	def preload(self, directory):
+	def preload(self, problem_data):
 		pass
 
 	def evaluate(self, code):
 		pass
 
-	def cleanup(self, directory):
+	def cleanup(self):
 		pass

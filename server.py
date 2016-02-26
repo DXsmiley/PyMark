@@ -12,6 +12,7 @@ import cgi
 import os
 import submissions
 import settings
+import problems
 
 html_framework = """
 	<html>
@@ -382,13 +383,15 @@ def user_list_all():
 
 ### PROBLEM INFORMATION ####################################################################
 
-def problem_get_long_name(i):
-	fsettings = open('./problems/{}/settings.json'.format(i))
-	return json.loads(fsettings.read()).get('name', i + ' (missing property: name)')
+# Replaced by problems.get_long_name(id)
+# def problem_get_long_name(i):
+# 	fsettings = open('./problems/{}/settings.json'.format(i))
+# 	return json.loads(fsettings.read()).get('name', i + ' (missing property: name)')
 
-def problem_get_data(i):
-	f = open('./problems/{}/settings.json'.format(i))
-	return json.loads(f.read())
+# Replaced by problems.get(id)
+# def problem_get_data(i):
+# 	f = open('./problems/{}/settings.json'.format(i))
+# 	return json.loads(f.read())
 
 def user_get_best_submissions(username):
 	scores = submissions.user_get_scores(username)
@@ -420,8 +423,15 @@ def problem_listing(username = None):
 
 	html = ''
 
-	with open('./problems/problems.json') as f:
-		jdata = json.loads(f.read())
+	# with open('./problems/problems.json') as f:
+	# 	jdata = json.loads(f.read())
+	if True:
+		jdata = []
+		for group, probs in problems.listing().items():
+			jdata.append({
+				'section': group,
+				'problems': probs
+			})
 		if len(jdata) == 0:
 			html = """
 				<p>There are no problems!</p>
@@ -443,8 +453,8 @@ def problem_listing(username = None):
 				group_s = len(group_o['problems'])
 
 				for problem in group_o['problems']:
-					data = problem_get_data(problem)
-					long_name = data.get('name', problem + ' (?)')
+					data = problems.get_meta(problem)
+					long_name = data.get('long_name', problem + ' (?)')
 					required = data.get('required solves', 0)
 					score = scores.get(problem, 'Not attempted')
 					colour = ''
@@ -481,7 +491,7 @@ def problem_listing(username = None):
 	return html
 
 @bottle.route('/problems')
-def problems():
+def page_problems():
 	username = None
 	if session_check():
 		username = session_get_username()
@@ -502,34 +512,18 @@ def attempt_listing(username, problem = None):
 
 @bottle.route('/statement/<problem>')
 def statement(problem):
-	# Handle non-existant problems
 	try:
-		open('./problems/{}/settings.json'.format(problem))
-	except FileNotFoundError:
+		problem_data = problems.get_meta(problem)
+	except problems.ErrorProblemDoesntExist:
 		raise bottle.HTTPError(status = 404)
-	# Get problem data
-	problem_data = problem_get_data(problem)
 	# Check if locked
 	required_solves = problem_data.get('required solves', 0)
 	has_access = True
 	if required_solves > 0:
 		if not session_check() or submissions.user_get_num_solves(session_get_username()) < required_solves:
 			has_access = False
-	# Warning about no problem statement
-	statement = """
-		<h1>{}</h1>
-		<div class="bs-callout bs-callout-danger">
-			<h4>Warning!</h4>
-			<p>There is no problem statement for this question.
-			It's probably unstable, so <i>don't submit code</i>.</p>
-		</div>
-		""".format(problem_data.get('name', problem))
 	# Load problem statement
-	try:
-		with open('./problems/{}/statement.html'.format(problem)) as f:
-			statement = f.read()
-	except FileNotFoundError:
-		pass
+	statement = problem_data['statement']
 	# Create page
 	if has_access or (session_check() and session_get_auth_level() in {'tutor', 'admin'}):
 		if session_check():
@@ -588,6 +582,106 @@ def statement(problem):
 			""".format(problem_data.get('name', problem))
 		return html_framework.format(contents)
 
+### PROBLEM EDITING ########################################################################
+
+@bottle.route('/new_problem')
+def page_problem_new():
+	contents = "<p>Nope.</p>"
+	if session_check() and (session_get_auth_level() in ['admin', 'tutor']):
+		contents = """
+			<h1>Create New Problem</h1>
+				<form action="/problem_new" method="post" enctype="multipart/form-data">
+				<div class="form-group">
+					<label>Identifier</label>
+					<input type="text" class="form-control" name="short_name">
+				</div>
+				<div class="form-group">
+					<label>Display Name</label>
+					<input type="text" class="form-control" name="long_name">
+				</div>
+				<div class="form-group">
+					<label>Statement</label>
+					<textarea class="form-control" rows="20" name="statement"></textarea>
+				</div>
+				<div class="form-group">
+					<label>Test Data</label>
+					<textarea class="form-control" rows="20" name="test_data"></textarea>
+				</div>
+				<div class="checkbox">
+					<label>
+						<input type="checkbox" value="">
+						Disable problem
+					</label>
+				</div>
+				<button type="submit" class="btn btn-default">Save</button>
+			</form>
+		"""
+	return html_framework.format(contents)
+
+@bottle.route('/problem_edit/<problem>')
+def page_problem_edit(problem):
+	contents = '<p>Nope.</p>'
+	if session_check() and session_get_auth_level() in ['admin', 'tutor']:
+		try:
+			data = problems.get(problem)
+		except problems.ErrorProblemDoesntExist:
+			raise bottle.HTTPError(status = 404)
+		to_page = {
+			'short_name': data['_id'],
+			'long_name': data['long_name'],
+			'statement': data['statement'],
+			'test_data': data['cases']
+		}
+		contents = """
+			<h1>Edit Problem</h1>
+				<form action="/problem_edit" method="post" enctype="multipart/form-data">
+				<div class="form-group">
+					<label>Identifier</label>
+					<input type="text" class="form-control" name="short_name" value="{short_name}" readonly>
+				</div>
+				<div class="form-group">
+					<label>Display Name</label>
+					<input type="text" class="form-control" name="long_name" value="{long_name}">
+				</div>
+				<div class="form-group">
+					<label>Statement</label>
+					<textarea class="form-control" rows="20" name="statement">{statement}</textarea>
+				</div>
+				<div class="form-group">
+					<label>Test Data</label>
+					<textarea class="form-control" rows="20" name="test_data">{test_data}</textarea>
+				</div>
+				<div class="checkbox">
+					<label>
+						<input type="checkbox" value="">
+						Disable problem
+					</label>
+				</div>
+				<button type="submit" class="btn btn-default">Save</button>
+			</form>
+		""".format(**to_page)
+	return html_framework.format(contents)
+
+def post_problem_change(change_function):
+	if session_check() and session_get_auth_level() in ['admin', 'tutor']:
+		prob_id = bottle.request.forms.get('short_name')
+		long_name = bottle.request.forms.get('long_name')
+		statement = bottle.request.forms.get('statement')
+		cases = bottle.request.forms.get('test_data')
+		print(prob_id)
+		change_function(prob_id, long_name, statement, cases)
+		bottle.redirect('/statement/' + prob_id)
+	else:
+		raise bottle.HTTPError(status = 401)
+
+@bottle.route('/problem_new', method = 'POST')
+def post_problem_new():
+	post_problem_change(problems.create)
+
+@bottle.route('/problem_edit', method = 'POST')
+def post_problem_edit():
+	post_problem_change(problems.edit)
+
 ### SUBMISSIONS AND SCORES #################################################################
 
 # Maybe, some year far into the future, the random number generator will mess up.
@@ -611,7 +705,7 @@ def loadFileSafely(file_object, limit = 1024):
 @bottle.route('/dosubmit/<problem>', method = 'POST')
 def dosubmit(problem):
 	if session_check():
-		if problem_get_data(problem).get('disabled', False):
+		if False: # problem_get_data(problem).get('disabled', False):
 			contents = """
 				<div class="bs-callout bs-callout-danger">
 					<h4>Error!</h4>

@@ -72,13 +72,16 @@ class Grader(BaseGrader):
 		self.case_sensitive = True
 		self.run_timeout = 3
 
-	def preload(self, directory, settings = None):
-		self.test_cases = json.loads(open(directory + "cases.json").read())
+	def preload(self, problem_data, settings = None):
+		self.test_cases = problem_data['cases']
+		if type(self.test_cases) is str:
+			self.test_cases = json.loads(self.test_cases)
+		print('Test cases', self.test_cases)
 		if settings != None:
 			self.case_sensitive = settings.get("case sensitive", True)
 			self.run_timeout = settings.get('timeout', 3)
 
-	def cleanup(self, directory):
+	def cleanup(self):
 		os.remove(CODE_PATH)
 
 	def evaluate(self, code, verbose = False):

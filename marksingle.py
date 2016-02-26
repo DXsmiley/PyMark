@@ -6,6 +6,7 @@ import importlib
 import traceback
 import cgi
 import submissions
+import problems
 
 def mark(problem_to_mark, code):
 
@@ -17,23 +18,16 @@ def mark(problem_to_mark, code):
 
 		print('Marking Problem: ', problem_to_mark)
 
-		THE_FOLDER = "./problems/" + problem_to_mark + "/"
+		# THE_FOLDER = "./problems/" + problem_to_mark + "/"
 		VERBOSE = False
 
 		grader = None
 
-		with open(THE_FOLDER + 'settings.json') as file_opts:
-			jdata = json.loads(file_opts.read())
-			grader_name = jdata['grader']
-			command = importlib.import_module(grader_name)
-			grader = command.Grader()
-			if VERBOSE:
-				print(grader_name, grader)
-			# At some point, I might make the 'grader settings' argument mandatory.
-			if 'grader settings' in jdata:
-				grader.preload(THE_FOLDER, settings = jdata['grader settings'])
-			else:
-				grader.preload(THE_FOLDER)
+		problem_data = problems.get(problem_to_mark)
+		grader_name = problem_data['grader']
+		command = importlib.import_module(grader_name)
+		grader = command.Grader()
+		grader.preload(problem_data)
 
 		grader_output = grader.evaluate(code, verbose = VERBOSE)
 		final_result = int(grader_output[0])
@@ -56,7 +50,7 @@ def mark(problem_to_mark, code):
 			""".format(cgi.escape(error_text.replace('\n', '<br>')))
 	
 	try:
-		grader.cleanup(THE_FOLDER)
+		grader.cleanup()
 	except:
 		pass
 
