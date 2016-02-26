@@ -27,7 +27,7 @@ def load_setting(name, default = None):
 	if name not in settings:
 		settings[name] = os.environ.get('pymark_' + name, default)
 	v = settings[name]
-	if v.startswith("ENV:"):
+	if v and v.startswith("ENV:"):
 		settings[name] = os.environ.get(v[4:], default)
 
 load_setting('invoke_code', 'python {}')
