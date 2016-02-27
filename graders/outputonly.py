@@ -14,8 +14,6 @@ import cgi
 # "case sentitive" : boolean : output is considerd even if the case doesn't match
 # "batched"        : boolean : requires that all cases for a subtask are passed to get the points
 # "timeout"        : integer : timeout for each test case
-
-# Unimplemented grader options
 # "short circuit"  : boolean : if the code fails a single case in a batch, subsequent cases are not run; activates batched mode
 
 sandbox_code = """
