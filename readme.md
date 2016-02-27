@@ -79,37 +79,47 @@ Finally, you should create the file `cases.json`. This file contains all the tes
 
 An example `cases.json` file follows:
 
-	{
-		"Subtask 1":
-		[
-			{
-				"input": [
-					"1 3 2",
-					"8 3 7 2 49 3"
-				],
-				"output": [
-					"2 1",
-					"7"
-				],
-				"show result": true
-			}
-		]
-		"Subtask 2":
-		[
-			{
-				"input": [
-					"4 70 4",
-					"1 76 34 865 382 12 53"
-				],
-				"output": [
-					"4 8",
-					"30"
-				]
-			}
-		]
-	}
+	[
+		{
+			"name": "Subtask 1",
+			"weight": 30,
+			"cases": [
+				{
+					"input": [
+						"1 3 2",
+						"8 3 7 2 49 3"
+					],
+					"output": [
+						"2 1",
+						"7"
+					],
+					"show result": true
+				}
+			]
+		},
+		{
+			"name": "Subtask 2",
+			"weight": 70,
+			"cases": [
+				{
+					"input": [
+						"4 70 4",
+						"1 76 34 865 382 12 53"
+					],
+					"output": [
+						"4 8",
+						"30"
+					]
+				}
+			]
+		}
+	]
 
 Note that the `"show result"` flag can be used to show the user what their code produced, the correct output *and* the input.
+
+	**Warning**
+
+	"show result is currently not functional"
 
 ## Furthur help
 
