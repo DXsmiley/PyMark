@@ -122,6 +122,9 @@ class Grader(BaseGrader):
 		if len(program_output) != len(e_output):
 			return 0
 		for i, j in zip(program_output, e_output):
+			if not self.case_sensitive:
+				i = i.lower()
+				j = j.lower()
 			if i.strip() != j.strip():
 				return 0
 		return 100
