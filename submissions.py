@@ -3,6 +3,7 @@ import random
 import zlib
 import base64
 import json
+import problems
 
 def compress(s):
 	return base64.b64encode(zlib.compress(bytes(str(str(s)), encoding = 'utf-8'), 9))
@@ -40,18 +41,6 @@ def get_result(submission_id):
 	doc['breakdown'] = decompress(doc['breakdown'])
 	return doc
 
-def get_local_problems():
-	s = set()
-	try:
-		with open('./problems/problems.json') as f:
-			jdata = json.loads(f.read())
-			for i in jdata:
-				for j in i['problems']:
-					s.add(j)
-	except FileNotFoundError:
-		pass
-	return s
-
 def user_get_scores(username, problem = None):
 	if problem == None:
 		return list(databases.c_submissions.find({'username': username}))
@@ -63,20 +52,24 @@ def user_get_best_score(username, problem):
 		best = max(i['score'], best)
 	return best
 
-def user_get_num_solves(username, local_only = True):
+def user_get_num_solves(username, active_only = True):
 	solved = set()
-	problems = get_local_problems() if local_only else None
 	for i in user_get_scores(username):
 		if i['score'] == 100:
-			if not local_only or i['problem'] in problems:
-				solved.add(i['problem'])
+			solved.add(i['problem'])
+	if active_only:
+		active = set(problems.list_names())
+		solved = active & solved
 	return len(solved)
 
-def user_get_total_score(username, local_only = True):
+def user_get_total_score(username, active_only = True):
 	solved = {}
-	problems = get_local_problems() if local_only else None
 	for i in user_get_scores(username):
 		p = i['problem']
-		if not local_only or p in problems:
-			solved[p] = max(solved.get(p, 0), i['score'])
+		solved[p] = max(solved.get(p, 0), i['score'])
+	if active_only:
+		names = set(problems.list_names())
+		for i in solved:
+			if i not in names:
+				solved[i] = 0
 	return sum(solved.values())

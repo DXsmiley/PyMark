@@ -89,10 +89,12 @@ class Grader(BaseGrader):
 		self.code = ''
 		self.short_circuit = False
 
-	def preload(self, directory, settings = None):
-		self.test_cases = json.loads(open(directory + "cases.json").read())
+	def preload(self, problem_data, settings = None):
+		self.test_cases = problem_data['cases']
+		if type(self.test_cases) is str:
+			self.test_cases = json.loads(self.test_cases)
 		# If we're using the old format, we need to convert it.
-		if isinstance(self.test_cases, dict):
+		if type(self.test_cases) is dict:
 			new_cases = []
 			for name, cases in self.test_cases.items():
 				new_cases.append({
@@ -106,7 +108,7 @@ class Grader(BaseGrader):
 			self.short_circuit = settings.get('short circuit', False)
 			self.batched = settings.get('batched', self.short_circuit)
 
-	def cleanup(self, directory):
+	def cleanup(self):
 		os.remove(CODE_PATH)
 
 	def score_subtask(self, subtask, scores, verbose = False):

@@ -12,12 +12,13 @@ import cgi
 import os
 import submissions
 import settings
+import problems
 
 html_framework = """
 	<html>
 		<head>
 			<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
-			<link rel="stylesheet" href="/static/callouts.css" />
+			<link rel="stylesheet" href="/callouts.css">
 			<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 			<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 			<title>PyMark Code Judge</title>
@@ -105,6 +106,68 @@ def index():
 @bottle.route('/favicon.ico')
 def favicon():
 	return bottle.static_file('./favicon.png', root = './static')
+
+# Should probably move this to some other file...
+@bottle.route('/callouts.css')
+def callouts_css():
+	return """
+		.bs-callout {
+			padding: 20px;
+			margin: 20px 0;
+			border: 1px solid #eee;
+			border-left-width: 5px;
+			border-radius: 3px;
+		}
+		.bs-callout h4 {
+			margin-top: 0;
+			margin-bottom: 5px;
+		}
+		.bs-callout p:last-child {
+			margin-bottom: 0;
+		}
+		.bs-callout code {
+			border-radius: 3px;
+		}
+		.bs-callout+.bs-callout {
+			margin-top: -5px;
+		}
+		.bs-callout-default {
+			border-left-color: #777;
+		}
+		.bs-callout-default h4 {
+			color: #777;
+		}
+		.bs-callout-primary {
+			border-left-color: #428bca;
+		}
+		.bs-callout-primary h4 {
+			color: #428bca;
+		}
+		.bs-callout-success {
+			border-left-color: #5cb85c;
+		}
+		.bs-callout-success h4 {
+			color: #5cb85c;
+		}
+		.bs-callout-danger {
+			border-left-color: #d9534f;
+		}
+		.bs-callout-danger h4 {
+			color: #d9534f;
+		}
+		.bs-callout-warning {
+			border-left-color: #f0ad4e;
+		}
+		.bs-callout-warning h4 {
+			color: #f0ad4e;
+		}
+		.bs-callout-info {
+			border-left-color: #5bc0de;
+		}
+		.bs-callout-info h4 {
+			color: #5bc0de;
+		}
+	"""
 
 ### ACCOUNT MANAGEMENT #####################################################################
 
@@ -249,6 +312,21 @@ def session_get_auth_level():
 	session_key = bottle.request.get_cookie('session_key')
 	return accounts.session_get_account_data(session_id).get('auth', 'student')
 
+AUTH_ADMIN = 'admin'
+AUTH_STUDENT = 'student'
+AUTH_TUTOR = 'tutor'
+
+# This is a decorator.
+def require_credentials(*levels):
+	def do_apply(func):
+		def internal(*args, **kwargs):
+			if session_check() and session_get_auth_level() in levels:
+				return func(*args, **kwargs)
+			else:
+				raise bottle.HTTPError(status = 401)
+		return internal		
+	return do_apply
+
 @bottle.route('/my_account')
 def my_account():
 	if session_check():
@@ -382,13 +460,15 @@ def user_list_all():
 
 ### PROBLEM INFORMATION ####################################################################
 
-def problem_get_long_name(i):
-	fsettings = open('./problems/{}/settings.json'.format(i))
-	return json.loads(fsettings.read()).get('name', i + ' (missing property: name)')
+# Replaced by problems.get_long_name(id)
+# def problem_get_long_name(i):
+# 	fsettings = open('./problems/{}/settings.json'.format(i))
+# 	return json.loads(fsettings.read()).get('name', i + ' (missing property: name)')
 
-def problem_get_data(i):
-	f = open('./problems/{}/settings.json'.format(i))
-	return json.loads(f.read())
+# Replaced by problems.get(id)
+# def problem_get_data(i):
+# 	f = open('./problems/{}/settings.json'.format(i))
+# 	return json.loads(f.read())
 
 def user_get_best_submissions(username):
 	scores = submissions.user_get_scores(username)
@@ -420,8 +500,15 @@ def problem_listing(username = None):
 
 	html = ''
 
-	with open('./problems/problems.json') as f:
-		jdata = json.loads(f.read())
+	# with open('./problems/problems.json') as f:
+	# 	jdata = json.loads(f.read())
+	if True:
+		jdata = []
+		for group, probs in problems.listing().items():
+			jdata.append({
+				'section': group,
+				'problems': probs
+			})
 		if len(jdata) == 0:
 			html = """
 				<p>There are no problems!</p>
@@ -443,8 +530,8 @@ def problem_listing(username = None):
 				group_s = len(group_o['problems'])
 
 				for problem in group_o['problems']:
-					data = problem_get_data(problem)
-					long_name = data.get('name', problem + ' (?)')
+					data = problems.get_meta(problem)
+					long_name = data.get('long_name', problem + ' (?)')
 					required = data.get('required solves', 0)
 					score = scores.get(problem, 'Not attempted')
 					colour = ''
@@ -481,11 +568,14 @@ def problem_listing(username = None):
 	return html
 
 @bottle.route('/problems')
-def problems():
+def page_problems():
 	username = None
 	if session_check():
 		username = session_get_username()
-	html = '<h1>Problems</h1>' + problem_listing(username)
+	html = ''
+	if session_check() and session_get_auth_level() in {AUTH_TUTOR, AUTH_ADMIN}:
+		html += '<p><a href="/problem_new">Create New Problem</a></p>'
+	html += '<h1>Problems</h1>' + problem_listing(username)
 	return html_framework.format(html)
 
 def attempt_listing(username, problem = None):
@@ -502,34 +592,18 @@ def attempt_listing(username, problem = None):
 
 @bottle.route('/statement/<problem>')
 def statement(problem):
-	# Handle non-existant problems
 	try:
-		open('./problems/{}/settings.json'.format(problem))
-	except FileNotFoundError:
+		problem_data = problems.get_meta(problem)
+	except problems.ErrorProblemDoesntExist:
 		raise bottle.HTTPError(status = 404)
-	# Get problem data
-	problem_data = problem_get_data(problem)
 	# Check if locked
 	required_solves = problem_data.get('required solves', 0)
 	has_access = True
 	if required_solves > 0:
 		if not session_check() or submissions.user_get_num_solves(session_get_username()) < required_solves:
 			has_access = False
-	# Warning about no problem statement
-	statement = """
-		<h1>{}</h1>
-		<div class="bs-callout bs-callout-danger">
-			<h4>Warning!</h4>
-			<p>There is no problem statement for this question.
-			It's probably unstable, so <i>don't submit code</i>.</p>
-		</div>
-		""".format(problem_data.get('name', problem))
 	# Load problem statement
-	try:
-		with open('./problems/{}/statement.html'.format(problem)) as f:
-			statement = f.read()
-	except FileNotFoundError:
-		pass
+	statement = problem_data['statement']
 	# Create page
 	if has_access or (session_check() and session_get_auth_level() in {'tutor', 'admin'}):
 		if session_check():
@@ -561,6 +635,8 @@ def statement(problem):
 				</div>
 				"""
 		head = ''
+		if session_check() and session_get_auth_level() in {AUTH_TUTOR, AUTH_ADMIN}:
+			head += '<p><a href="/problem_edit/{}">Edit This Problem</a></p>'.format(problem)
 		if not has_access:
 			head += """
 				<div class="bs-callout">
@@ -588,6 +664,98 @@ def statement(problem):
 			""".format(problem_data.get('name', problem))
 		return html_framework.format(contents)
 
+### PROBLEM EDITING ########################################################################
+
+html_problem_edit = """
+<h1>{title}</h1>
+<form action="/{form_target}" method="post" enctype="multipart/form-data">
+	<div class="form-group">
+		<label>Identifier</label>
+		<input type="text" class="form-control" name="short_name" value="{short_name}" {readonly_flag}>
+	</div>
+	<div class="form-group">
+		<label>Display Name</label>
+		<input type="text" class="form-control" name="long_name" value="{long_name}">
+	</div>
+	<div class="form-group">
+		<label>Display Name</label>
+		<input type="text" class="form-control" name="group" value="{group}">
+	</div>
+	<div class="form-group">
+		<label>Statement</label>
+		<textarea class="form-control" rows="20" name="statement">{statement}</textarea>
+	</div>
+	<div class="form-group">
+		<label>Test Data</label>
+		<textarea class="form-control" rows="20" name="test_data">{test_data}</textarea>
+	</div>
+	<div class="checkbox">
+		<label>
+			<input type="checkbox" value="" name="disabled" {disabled}>
+			Disable problem
+		</label>
+	</div>
+	<button type="submit" class="btn btn-default">Save</button>
+</form>
+"""
+
+@bottle.route('/problem_new')
+@require_credentials(AUTH_TUTOR, AUTH_ADMIN)
+def page_problem_new():
+	to_page = {
+		'form_target': 'problem_new',
+		'title': 'Create New Problem',
+		'readonly_flag': '',
+		'short_name': '',
+		'long_name': '',
+		'disabled': '',
+		'group': 'Uncategorised',
+		'statement': '<h1>Problem Name</h1>\n<p>Description</p>\n<h2>Input</h2>\n<h2>Output</h2>',
+		'test_data': '{"Cases":[{"input":["1 2"], "output":["3"]}]}'
+	}
+	return html_framework.format(html_problem_edit.format(**to_page))
+
+@bottle.route('/problem_edit/<problem>')
+@require_credentials(AUTH_TUTOR, AUTH_ADMIN)
+def page_problem_edit(problem):
+	try:
+		data = problems.get(problem)
+	except problems.ErrorProblemDoesntExist:
+		raise bottle.HTTPError(status = 404)
+	to_page = {
+		'form_target': 'problem_edit',
+		'title': 'Edit Problem; ' + data['_id'],
+		'short_name': data['_id'],
+		'long_name': data['long_name'],
+		'statement': data['statement'],
+		'test_data': data['cases'],
+		'group': data.get('group', 'Uncategorised'),
+		'readonly_flag': 'readonly',
+		'disabled': 'checked' if data['disabled'] else ''
+	}
+	return html_framework.format(html_problem_edit.format(**to_page))
+
+def post_problem_change(change_function):
+	if session_check() and session_get_auth_level() in ['admin', 'tutor']:
+		prob_id = bottle.request.forms.get('short_name')
+		long_name = bottle.request.forms.get('long_name')
+		statement = bottle.request.forms.get('statement')
+		cases = bottle.request.forms.get('test_data')
+		disabled = bottle.request.forms.get('disabled') is not None
+		group = bottle.request.forms.get('group')
+		change_function(prob_id, long_name, statement, cases, disabled = disabled, group = group)
+		bottle.redirect('/statement/' + prob_id)
+	else:
+		raise bottle.HTTPError(status = 401)
+
+@bottle.route('/problem_new', method = 'POST')
+def post_problem_new():
+	post_problem_change(problems.create)
+
+@bottle.route('/problem_edit', method = 'POST')
+def post_problem_edit():
+	post_problem_change(problems.edit)
+
 ### SUBMISSIONS AND SCORES #################################################################
 
 # Maybe, some year far into the future, the random number generator will mess up.
@@ -611,7 +779,7 @@ def loadFileSafely(file_object, limit = 1024):
 @bottle.route('/dosubmit/<problem>', method = 'POST')
 def dosubmit(problem):
 	if session_check():
-		if problem_get_data(problem).get('disabled', False):
+		if False: # problem_get_data(problem).get('disabled', False):
 			contents = """
 				<div class="bs-callout bs-callout-danger">
 					<h4>Error!</h4>
