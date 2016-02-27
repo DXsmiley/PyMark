@@ -67,7 +67,7 @@ def input(*args):
 
 """
 
-# This is the path that should be used ro run code
+# This is the path that should be used to run code
 CODE_PATH = './rundir/code.py'
 
 def score_colour(score):
