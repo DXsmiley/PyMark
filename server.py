@@ -572,7 +572,10 @@ def page_problems():
 	username = None
 	if session_check():
 		username = session_get_username()
-	html = '<h1>Problems</h1>' + problem_listing(username)
+	html = ''
+	if session_check() and session_get_auth_level() in {AUTH_TUTOR, AUTH_ADMIN}:
+		html += '<p><a href="/problem_new">Create New Problem</a></p>'
+	html += '<h1>Problems</h1>' + problem_listing(username)
 	return html_framework.format(html)
 
 def attempt_listing(username, problem = None):
@@ -632,6 +635,8 @@ def statement(problem):
 				</div>
 				"""
 		head = ''
+		if session_check() and session_get_auth_level() in {AUTH_TUTOR, AUTH_ADMIN}:
+			head += '<p><a href="/problem_edit/{}">Edit This Problem</a></p>'.format(problem)
 		if not has_access:
 			head += """
 				<div class="bs-callout">
@@ -663,7 +668,7 @@ def statement(problem):
 
 html_problem_edit = """
 <h1>{title}</h1>
-<form action="/problem_edit" method="post" enctype="multipart/form-data">
+<form action="/{form_target}" method="post" enctype="multipart/form-data">
 	<div class="form-group">
 		<label>Identifier</label>
 		<input type="text" class="form-control" name="short_name" value="{short_name}" {readonly_flag}>
@@ -698,6 +703,7 @@ html_problem_edit = """
 @require_credentials(AUTH_TUTOR, AUTH_ADMIN)
 def page_problem_new():
 	to_page = {
+		'form_target': 'problem_new',
 		'title': 'Create New Problem',
 		'readonly_flag': '',
 		'short_name': '',
@@ -717,6 +723,7 @@ def page_problem_edit(problem):
 	except problems.ErrorProblemDoesntExist:
 		raise bottle.HTTPError(status = 404)
 	to_page = {
+		'form_target': 'problem_edit',
 		'title': 'Edit Problem; ' + data['_id'],
 		'short_name': data['_id'],
 		'long_name': data['long_name'],
