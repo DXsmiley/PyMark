@@ -18,7 +18,7 @@ html_framework = """
 	<html>
 		<head>
 			<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
-			<link rel="stylesheet" href="/static/callouts.css" />
+			<link rel="stylesheet" href="/callouts.css">
 			<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 			<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 			<title>PyMark Code Judge</title>
@@ -106,6 +106,68 @@ def index():
 @bottle.route('/favicon.ico')
 def favicon():
 	return bottle.static_file('./favicon.png', root = './static')
+
+# Should probably move this to some other file...
+@bottle.route('/callouts.css')
+def callouts_css():
+	return """
+		.bs-callout {
+			padding: 20px;
+			margin: 20px 0;
+			border: 1px solid #eee;
+			border-left-width: 5px;
+			border-radius: 3px;
+		}
+		.bs-callout h4 {
+			margin-top: 0;
+			margin-bottom: 5px;
+		}
+		.bs-callout p:last-child {
+			margin-bottom: 0;
+		}
+		.bs-callout code {
+			border-radius: 3px;
+		}
+		.bs-callout+.bs-callout {
+			margin-top: -5px;
+		}
+		.bs-callout-default {
+			border-left-color: #777;
+		}
+		.bs-callout-default h4 {
+			color: #777;
+		}
+		.bs-callout-primary {
+			border-left-color: #428bca;
+		}
+		.bs-callout-primary h4 {
+			color: #428bca;
+		}
+		.bs-callout-success {
+			border-left-color: #5cb85c;
+		}
+		.bs-callout-success h4 {
+			color: #5cb85c;
+		}
+		.bs-callout-danger {
+			border-left-color: #d9534f;
+		}
+		.bs-callout-danger h4 {
+			color: #d9534f;
+		}
+		.bs-callout-warning {
+			border-left-color: #f0ad4e;
+		}
+		.bs-callout-warning h4 {
+			color: #f0ad4e;
+		}
+		.bs-callout-info {
+			border-left-color: #5bc0de;
+		}
+		.bs-callout-info h4 {
+			color: #5bc0de;
+		}
+	"""
 
 ### ACCOUNT MANAGEMENT #####################################################################
 
@@ -249,6 +311,21 @@ def session_get_auth_level():
 	session_id = bottle.request.get_cookie('session_id')
 	session_key = bottle.request.get_cookie('session_key')
 	return accounts.session_get_account_data(session_id).get('auth', 'student')
+
+AUTH_ADMIN = 'admin'
+AUTH_STUDENT = 'student'
+AUTH_TUTOR = 'tutor'
+
+# This is a decorator.
+def require_credentials(*levels):
+	def do_apply(func):
+		def internal(*args, **kwargs):
+			if session_check() and session_get_auth_level() in levels:
+				return func(*args, **kwargs)
+			else:
+				raise bottle.HTTPError(status = 401)
+		return internal		
+	return do_apply
 
 @bottle.route('/my_account')
 def my_account():
@@ -584,83 +661,72 @@ def statement(problem):
 
 ### PROBLEM EDITING ########################################################################
 
+html_problem_edit = """
+<h1>{title}</h1>
+<form action="/problem_edit" method="post" enctype="multipart/form-data">
+	<div class="form-group">
+		<label>Identifier</label>
+		<input type="text" class="form-control" name="short_name" value="{short_name}" {readonly_flag}>
+	</div>
+	<div class="form-group">
+		<label>Display Name</label>
+		<input type="text" class="form-control" name="long_name" value="{long_name}">
+	</div>
+	<div class="form-group">
+		<label>Display Name</label>
+		<input type="text" class="form-control" name="group" value="{group}">
+	</div>
+	<div class="form-group">
+		<label>Statement</label>
+		<textarea class="form-control" rows="20" name="statement">{statement}</textarea>
+	</div>
+	<div class="form-group">
+		<label>Test Data</label>
+		<textarea class="form-control" rows="20" name="test_data">{test_data}</textarea>
+	</div>
+	<div class="checkbox">
+		<label>
+			<input type="checkbox" value="" name="disabled" {disabled}>
+			Disable problem
+		</label>
+	</div>
+	<button type="submit" class="btn btn-default">Save</button>
+</form>
+"""
+
 @bottle.route('/problem_new')
+@require_credentials(AUTH_TUTOR, AUTH_ADMIN)
 def page_problem_new():
-	contents = "<p>Nope.</p>"
-	if session_check() and (session_get_auth_level() in ['admin', 'tutor']):
-		contents = """
-			<h1>Create New Problem</h1>
-				<form action="/problem_new" method="post" enctype="multipart/form-data">
-				<div class="form-group">
-					<label>Identifier</label>
-					<input type="text" class="form-control" name="short_name">
-				</div>
-				<div class="form-group">
-					<label>Display Name</label>
-					<input type="text" class="form-control" name="long_name">
-				</div>
-				<div class="form-group">
-					<label>Statement</label>
-					<textarea class="form-control" rows="20" name="statement"></textarea>
-				</div>
-				<div class="form-group">
-					<label>Test Data</label>
-					<textarea class="form-control" rows="20" name="test_data"></textarea>
-				</div>
-				<div class="checkbox">
-					<label>
-						<input type="checkbox" value="">
-						Disable problem
-					</label>
-				</div>
-				<button type="submit" class="btn btn-default">Save</button>
-			</form>
-		"""
-	return html_framework.format(contents)
+	to_page = {
+		'title': 'Create New Problem',
+		'readonly_flag': '',
+		'short_name': '',
+		'long_name': '',
+		'disabled': '',
+		'group': 'Uncategorised',
+		'statement': '<h1>Problem Name</h1>\n<p>Description</p>\n<h2>Input</h2>\n<h2>Output</h2>',
+		'test_data': '{"Cases":[{"input":["1 2"], "output":["3"]}]}'
+	}
+	return html_framework.format(html_problem_edit.format(**to_page))
 
 @bottle.route('/problem_edit/<problem>')
+@require_credentials(AUTH_TUTOR, AUTH_ADMIN)
 def page_problem_edit(problem):
-	contents = '<p>Nope.</p>'
-	if session_check() and session_get_auth_level() in ['admin', 'tutor']:
-		try:
-			data = problems.get(problem)
-		except problems.ErrorProblemDoesntExist:
-			raise bottle.HTTPError(status = 404)
-		to_page = {
-			'short_name': data['_id'],
-			'long_name': data['long_name'],
-			'statement': data['statement'],
-			'test_data': data['cases']
-		}
-		contents = """
-			<h1>Edit Problem</h1>
-				<form action="/problem_edit" method="post" enctype="multipart/form-data">
-				<div class="form-group">
-					<label>Identifier</label>
-					<input type="text" class="form-control" name="short_name" value="{short_name}" readonly>
-				</div>
-				<div class="form-group">
-					<label>Display Name</label>
-					<input type="text" class="form-control" name="long_name" value="{long_name}">
-				</div>
-				<div class="form-group">
-					<label>Statement</label>
-					<textarea class="form-control" rows="20" name="statement">{statement}</textarea>
-				</div>
-				<div class="form-group">
-					<label>Test Data</label>
-					<textarea class="form-control" rows="20" name="test_data">{test_data}</textarea>
-				</div>
-				<div class="checkbox">
-					<label>
-						<input type="checkbox" value="">
-						Disable problem
-					</label>
-				</div>
-				<button type="submit" class="btn btn-default">Save</button>
-			</form>
-		""".format(**to_page)
-	return html_framework.format(contents)
+	try:
+		data = problems.get(problem)
+	except problems.ErrorProblemDoesntExist:
+		raise bottle.HTTPError(status = 404)
+	to_page = {
+		'title': 'Edit Problem; ' + data['_id'],
+		'short_name': data['_id'],
+		'long_name': data['long_name'],
+		'statement': data['statement'],
+		'test_data': data['cases'],
+		'group': data.get('group', 'Uncategorised'),
+		'readonly_flag': 'readonly',
+		'disabled': 'checked' if data['disabled'] else ''
+	}
+	return html_framework.format(html_problem_edit.format(**to_page))
 
 def post_problem_change(change_function):
 	if session_check() and session_get_auth_level() in ['admin', 'tutor']:
@@ -668,8 +734,9 @@ def post_problem_change(change_function):
 		long_name = bottle.request.forms.get('long_name')
 		statement = bottle.request.forms.get('statement')
 		cases = bottle.request.forms.get('test_data')
-		print(prob_id)
-		change_function(prob_id, long_name, statement, cases)
+		disabled = bottle.request.forms.get('disabled') is not None
+		group = bottle.request.forms.get('group')
+		change_function(prob_id, long_name, statement, cases, disabled = disabled, group = group)
 		bottle.redirect('/statement/' + prob_id)
 	else:
 		raise bottle.HTTPError(status = 401)

@@ -16,14 +16,15 @@ def get_meta(short_name):
 def get_long_name(short_name):
 	return get(short_name, {'long_name': True}).get('long_name')
 	
-def listing():
+def listing(show_disabled = False):
 	listing = collections.defaultdict(list)
-	for i in databases.c_problems.find({}, {'_id': True, 'group': True}):
+	the_filter = {'disabled': False} if not show_disabled else {}
+	for i in databases.c_problems.find(the_filter, {'_id': True, 'group': True}):
 		group = i.get('group', 'Uncategorised')
 		listing[group].append(i['_id'])
 	return listing
 
-def create(short_name, long_name, statement, cases, disabled = False, grader = 'graders.outputonly'):
+def create(short_name, long_name, statement, cases, disabled = False, grader = 'graders.outputonly', group = 'Uncategorised'):
 	doc = databases.c_problems.find_one({'_id': short_name})
 	if doc != None:
 		raise ErrorProblemAlreadyExists(short_name)
@@ -33,11 +34,12 @@ def create(short_name, long_name, statement, cases, disabled = False, grader = '
 		'statement': statement,
 		'disabled': disabled,
 		'grader': grader,
-		'cases': cases
+		'cases': cases,
+		'group': group
 	}
 	databases.c_problems.insert(problem_doc)
 
-def edit(short_name, long_name, statement, cases, disabled = False, grader = 'graders.outputonly'):
+def edit(short_name, long_name, statement, cases, disabled = False, grader = 'graders.outputonly', group = 'Uncategorised'):
 	doc = databases.c_problems.find_one({'_id': short_name})
 	if doc == None:
 		raise ErrorProblemDoesntExist(short_name)
@@ -47,6 +49,7 @@ def edit(short_name, long_name, statement, cases, disabled = False, grader = 'gr
 		'statement': statement,
 		'disabled': disabled,
 		'grader': grader,
-		'cases': cases
+		'cases': cases,
+		'group': group
 	}
 	databases.c_problems.replace_one({'_id': short_name}, problem_doc)
