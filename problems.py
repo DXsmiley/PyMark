@@ -24,6 +24,13 @@ def listing(show_disabled = False):
 		listing[group].append(i['_id'])
 	return listing
 
+def list_names(show_disabled = False):
+	listing = []
+	the_filter = {'disabled': False} if not show_disabled else {}
+	for i in databases.c_problems.find(the_filter, {'_id': True}):
+		listing.append(i['_id'])
+	return listing
+
 def create(short_name, long_name, statement, cases, disabled = False, grader = 'graders.outputonly', group = 'Uncategorised'):
 	doc = databases.c_problems.find_one({'_id': short_name})
 	if doc != None:
