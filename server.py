@@ -62,12 +62,10 @@ def ensure_file_exists(filename, contents = ''):
 	except FileExistsError:
 		pass
 
-ensure_directory_exists('./problems')
 ensure_directory_exists('./rundir')
 ensure_directory_exists('./static')
 ensure_directory_exists('./static/pages')
 
-ensure_file_exists('./problems/problems.json', '{}')
 ensure_file_exists('./settings.json', '{}')
 
 ### GENERAL STUFF ##########################################################################
