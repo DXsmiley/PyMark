@@ -676,7 +676,7 @@ html_problem_edit = """
 		<input type="text" class="form-control" name="long_name" value="{long_name}">
 	</div>
 	<div class="form-group">
-		<label>Display Name</label>
+		<label>Group</label>
 		<input type="text" class="form-control" name="group" value="{group}">
 	</div>
 	<div class="form-group">
