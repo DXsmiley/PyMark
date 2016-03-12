@@ -60,3 +60,6 @@ def edit(short_name, long_name, statement, cases, disabled = False, grader = 'gr
 		'group': group
 	}
 	databases.c_problems.replace_one({'_id': short_name}, problem_doc)
+
+def rename_group(old_name, new_name):
+	databases.c_problems.update_many({'group': old_name}, {'$set': {'group': new_name}})

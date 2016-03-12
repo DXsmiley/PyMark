@@ -755,6 +755,33 @@ def post_problem_new():
 def post_problem_edit():
 	post_problem_change(problems.edit)
 
+@bottle.route('/group_rename')
+@require_credentials(AUTH_TUTOR, AUTH_ADMIN)
+def page_group_rename():
+	contents = """
+		<h1>Rename Group</h1>
+		<form action="/group_rename" method="post" enctype="multipart/form-data">
+			<div class="form-group">
+				<label>Current Group Name</label>
+				<input type="text" class="form-control" name="group_old">
+			</div>
+			<div class="form-group">
+				<label>New Group Name</label>
+				<input type="text" class="form-control" name="group_new">
+			</div>
+			<button type="submit" class="btn btn-default">Submit</button>
+		</form>
+	"""
+	return html_framework.format(contents)
+
+@bottle.route('/group_rename', method = 'POST')
+@require_credentials(AUTH_TUTOR, AUTH_ADMIN)
+def post_group_rename():
+	group_old = bottle.request.forms.get('group_old')
+	group_new = bottle.request.forms.get('group_new')
+	problems.rename_group(group_old, group_new)
+	return 'ok'
+
 ### SUBMISSIONS AND SCORES #################################################################
 
 # Maybe, some year far into the future, the random number generator will mess up.
