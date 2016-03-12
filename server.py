@@ -507,6 +507,7 @@ def problem_listing(username = None):
 				'section': group,
 				'problems': probs
 			})
+		jdata.sort(key = lambda x: x['section'])
 		if len(jdata) == 0:
 			html = """
 				<p>There are no problems!</p>
