@@ -174,12 +174,14 @@ class Grader(BaseGrader):
 			full_results.append((sub_data['name'], sub_score, sub_weight, sub_results))
 
 		final_score = (final_score * 100) // total_weight
-		html_result = '<h2 class="{}">Final Score: {}</h2>'.format(score_colour(final_score), final_score)
+		html_result = ''
 		
 		for sub_name, sub_score, sub_weight, sub_results in full_results:
 
+			if len(full_results) > 1:
+				html_result += "<h3>{} : {} / {}</h3>".format(sub_name, sub_score, sub_weight)
+
 			html_result += """
-				<h3>{} : {} / {}</h3>
 				<table class="table table-condensed">
 					<thead>
 						<th>Case</th>
@@ -187,7 +189,8 @@ class Grader(BaseGrader):
 						<th>Score</th>
 					</thead>
 					<tbody>
-				""".format(sub_name, sub_weight, sub_score)
+				"""
+
 			for i, (score, status) in enumerate(sub_results):
 				colour = score_colour(score)
 				html_result += """

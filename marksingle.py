@@ -33,7 +33,7 @@ def mark(problem_to_mark, code):
 		final_result = int(grader_output[0])
 
 		html_results = """<h1>Submission for {}</h1>
-			<p>Your final score: {}<p>
+			<h2>Final Score: {}</h2>
 			{}""".format(problem_to_mark, grader_output[0], grader_output[1])
 
 	except Exception as e:
