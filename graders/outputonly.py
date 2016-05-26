@@ -22,6 +22,7 @@ import sys as __sys__hidden__
 __allowed_modules__ = [
 	'math',
 	'collections',
+	'_collections'
 	'__main__',
 	'_bootlocale',
 	'itertools',
