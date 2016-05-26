@@ -17,37 +17,6 @@ import cgi
 # "short circuit"  : boolean : if the code fails a single case in a batch, subsequent cases are not run; activates batched mode
 
 sandbox_code = """
-import sys as __sys__hidden__
-
-__blocked_modules__ = [
-	'os',
-	'sys'
-]
-
-for i in __blocked_modules__:
-	__sys__hidden__.modules[i] = None
-
-__sys__hidden__ = None
-
-class IlligalFunctionError(Exception):
-	pass
-
-def IlligalFunction(*a, **b):
-	raise IlligalFunctionError()
-
-open = IlligalFunction
-delattr = IlligalFunction
-setattr = IlligalFunction
-eval = IlligalFunction
-exec = IlligalFunction
-globals = IlligalFunction
-hasattr = IlligalFunction
-locals = IlligalFunction
-memoryview = IlligalFunction
-vars = IlligalFunction
-__import__ = IlligalFunction
-__builtins__ = None
-
 ___input_strings___ = ___INJECTION_LOCATION___
 ___input_position___ = 0
 
