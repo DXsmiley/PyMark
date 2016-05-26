@@ -19,24 +19,10 @@ import cgi
 sandbox_code = """
 import sys as __sys__hidden__
 
-__allowed_modules__ = [
-	'math',
-	'collections',
-	'_collections'
-	'__main__',
-	'_bootlocale',
-	'itertools',
-	'builtins',
-]
-
 __blocked_modules__ = [
-	'pymongo',
-	'bottle'
+	'os',
+	'sys'
 ]
-
-for i in __sys__hidden__.modules:
-	if i not in __allowed_modules__:
-		__sys__hidden__.modules[i] = None
 
 for i in __blocked_modules__:
 	__sys__hidden__.modules[i] = None
