@@ -19,19 +19,26 @@ import cgi
 sandbox_code = """
 import sys as __sys__hidden__
 
-class ImportBlocker(object):
-	def __init__(self, *args):
-		self.module_names = args
+__allowed_modules__ = [
+	'math',
+	'collections',
+	'__main__',
+	'_bootlocale',
+	'itertools',
+	'builtins',
+]
 
-	def find_module(self, fullname, path = None):
-		return self
+__blocked_modules__ = [
+	'pymongo',
+	'bottle'
+]
 
-	def load_module(self, name):
-		raise ImportError("You may not import package '{}'.".format(name))
+for i in __sys__hidden__.modules:
+	if i not in __allowed_modules__:
+		__sys__hidden__.modules[i] = None
 
-__sys__hidden__.meta_path = [ImportBlocker()]
-__sys__hidden__.modules['os'] = None
-__sys__hidden__.modules['sys'] = None
+for i in __blocked_modules__:
+	__sys__hidden__.modules[i] = None
 
 __sys__hidden__ = None
 
