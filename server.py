@@ -218,7 +218,7 @@ def login_post():
 def logout():
 	bottle.response.delete_cookie('session_id')
 	bottle.response.delete_cookie('session_key')
-	return html_framework.format('<h1>Loged out</h1>')
+	return html_framework.format('<h1>Logged out</h1>')
 
 def newaccount_form(error = None):
 	contents = """
@@ -330,7 +330,7 @@ def my_account():
 	if session_check():
 		contents = """
 			<h1>My Account</h1>
-			<p>You are loged in as {username}.</p>
+			<p>You are logged in as {username}.</p>
 			<p>You can view your public profile <a href="/user/{username}">here</a></p>
 			<p><a href="/logout">Logout</a>.</p>
 			""".format(username = session_get_username())

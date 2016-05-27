@@ -20,7 +20,7 @@ PyMark runs in python, and uses mongodb for storing data on it's back end. It re
 
 ### Security
 
-PyMark has some *very* limited sandboxing features, which will homefully prevent people doing anything stupid. However, there are well known methods of escaping the sandbox.
+PyMark has some *very* limited sandboxing features, which will hopefully prevent people doing anything stupid. However, there are well known methods of escaping the sandbox.
 
 ## Getting started
 
@@ -70,7 +70,7 @@ The problem statement is a description of what the student should do. You can wr
 
 To begin, create a folder in the directory 'problems'. Are create a the following files `settings.json` and `statement.html` within it.
 
-Finally, you specify the test data
+Finally, you specify the test data.
 
 Example test data.
 
