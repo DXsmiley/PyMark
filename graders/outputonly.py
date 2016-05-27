@@ -117,14 +117,17 @@ class Grader(BaseGrader):
 		final_score = 0
 		total_weight = 0
 		full_results = []
+		case_number = 0
 
-		for sub_data in self.test_cases:
+		for case_number, sub_data in enumerate(self.test_cases):
 			sub_results = []
 			has_failed = False
 			for case in sub_data['cases']:
 				if has_failed and self.short_circuit:
 					sub_results.append((-1, 'Not Run'))
 				else:
+					case_number += 1
+					print('Test case', case_number)
 					score, status, the_output = self.run_test_case(case, sub_data['name'])
 					sub_results.append((score, status))
 					if score == 0:
