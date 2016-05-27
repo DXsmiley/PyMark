@@ -119,7 +119,7 @@ class Grader(BaseGrader):
 		full_results = []
 		case_number = 0
 
-		for case_number, sub_data in enumerate(self.test_cases):
+		for sub_data in self.test_cases:
 			sub_results = []
 			has_failed = False
 			for case in sub_data['cases']:
