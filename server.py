@@ -934,4 +934,4 @@ def error404(error):
 	return html_framework.format(contents)
 
 my_port = int(settings.get('port'))
-bottle.run(host = '0.0.0.0', port = my_port)
+bottle.run(server = bottle.PasteServer, host = '0.0.0.0', port = my_port)
