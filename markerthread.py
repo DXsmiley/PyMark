@@ -12,13 +12,16 @@ class MarkerThread:
 		thread.start()
 
 	def run(self):
+		global current
+
 		while True:
 
 			work_to_do = False
 
 			marker_queue_lock.acquire()
 			if len(marker_queue) > 0:
-				problem, submisson_id, username = marker_queue.pop(0)
+				current = marker_queue.pop(0)
+				problem, submisson_id, username = current
 				work_to_do = True
 			marker_queue_lock.release()
 			
@@ -43,13 +46,30 @@ class MarkerThread:
 					submissions.store_result(username, problem, submisson_id, score, html)
 					print('Finished marking')
 
+				marker_queue_lock.acquire()
+				current = ('Nothing', 'Nothing', 'Nothing')
+				marker_queue_lock.release()
+
 			time.sleep(self.interval)
+
+def format_item(item):
+	problem, submisson_id, username = item
+	return '{} : {}'.format(username, problem)
 
 def queue_item(item):
 	marker_queue_lock.acquire()
 	marker_queue.append(item)
 	marker_queue_lock.release()
 
+def queue_details():
+	marker_queue_lock.acquire()
+	result = [format_item(current)]
+	for i in marker_queue:
+		result.append(format_item(i))
+	marker_queue_lock.release()
+	return result
+
+current = ('Nothing', 'Nothing', 'Nothing')
 marker_queue_lock = threading.Lock()
 marker_queue = []
 marker_thread = MarkerThread(interval = 4)

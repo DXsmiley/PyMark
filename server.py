@@ -920,6 +920,13 @@ def highscores():
 		"""
 	return html_framework.format(contents)
 
+@bottle.route('/judge_queue')
+def judge_queue():
+	output = ''
+	for i in markerthread.queue_details():
+		output += '<p>{}</p>'.format(i)
+	return output
+
 ### ERROR HANDLING #########################################################################
 
 @bottle.error(404)
