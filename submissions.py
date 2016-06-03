@@ -73,3 +73,9 @@ def user_get_total_score(username, active_only = True):
 			if i not in names:
 				solved[i] = 0
 	return sum(solved.values())
+
+def problem_get_solves(problem_id):
+	solves = {}
+	for i in databases.c_submissions.find({'problem': problem_id, "score": 100}, {'breakdown': False}):
+		solves[i['username']] = i['_id']
+	return solves

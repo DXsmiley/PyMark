@@ -636,6 +636,7 @@ def statement(problem):
 		head = ''
 		if session_check() and session_get_auth_level() in {AUTH_TUTOR, AUTH_ADMIN}:
 			head += '<p><a href="/problem_edit/{}">Edit This Problem</a></p>'.format(problem)
+		head += '<p><a href="/solves/{}">View Solves</a></p>'.format(problem)
 		if not has_access:
 			head += """
 				<div class="bs-callout">
@@ -662,6 +663,24 @@ def statement(problem):
 			</div>
 			""".format(problem_data.get('name', problem))
 		return html_framework.format(contents)
+
+@bottle.route('/solves/<problem>')
+def solves(problem):
+	try:
+		problem_data = problems.get_meta(problem)
+	except problems.ErrorProblemDoesntExist:
+		raise bottle.HTTPError(status = 404)
+	prob_name = problem_data.get('long_name', 'this problem')
+	html = '<p>The following people have solved <a href="/statement/{}">{}</a>.</p>'.format(problem, prob_name)
+	solved = False
+	if session_check() and submissions.user_get_best_score(session_get_username(), problem):
+		solved = True
+	for user, code_id in submissions.problem_get_solves(problem).items():
+		if solved:
+			html += '<p><a href="/code/{}">{}</a></p>'.format(code_id, user)
+		else:
+			html += '<p>{}</p>'.format(user)
+	return html_framework.format(html)
 
 ### PROBLEM EDITING ########################################################################
 
@@ -842,9 +861,12 @@ def dosubmit(problem):
 		bottle.redirect('/login')
 
 def may_see_code(submission):
-	assert(session_check())
+	if not session_check():
+		return False
 	sub_data = submissions.get_result(submission)
 	ses_data = session_get_account_data()
+	if submissions.user_get_best_score(ses_data.get('username'), sub_data.get('problem')) == 100:
+		return True
 	return ses_data.get('auth') in ['admin', 'tutor'] or session_get_username() == sub_data['username']
 
 @bottle.route('/scores/<submission>')
