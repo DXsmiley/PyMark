@@ -673,7 +673,7 @@ def solves(problem):
 	prob_name = problem_data.get('long_name', 'this problem')
 	html = '<p>The following people have solved <a href="/statement/{}">{}</a>.</p>'.format(problem, prob_name)
 	solved = False
-	if session_check() and submissions.user_get_best_score(session_get_username(), problem):
+	if session_check() and submissions.user_get_best_score(session_get_username(), problem) == 100:
 		solved = True
 	for user, code_id in submissions.problem_get_solves(problem).items():
 		if solved:
@@ -865,7 +865,7 @@ def may_see_code(submission):
 		return False
 	sub_data = submissions.get_result(submission)
 	ses_data = session_get_account_data()
-	if submissions.user_get_best_score(sub_data['username'], sub_data['problem']) == 100:
+	if submissions.user_get_best_score(session_get_username(), sub_data['problem']) == 100:
 		return True
 	return ses_data.get('auth') in ['admin', 'tutor'] or session_get_username() == sub_data['username']
 
